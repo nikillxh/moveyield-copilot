@@ -9,7 +9,7 @@ module move_yield_copilot::vault_tests {
   /// -----------------------------
   /// Test: Initialize Vault
   /// -----------------------------
-  #[test(admin = @0x1)]
+  #[test(admin = @move_yield_copilot, user = @0x2)]
   public fun test_init_vault(admin: &signer) {
     vault::init_vault<TestCoin>(
       admin,
@@ -18,7 +18,7 @@ module move_yield_copilot::vault_tests {
     );
 
     let (assets, shares, strategy) =
-      vault::get_vault_state<TestCoin>(signer::address_of(admin));
+      vault::get_vault_state<TestCoin>();
 
     assert!(assets == 0, 0);
     assert!(shares == 0, 1);
@@ -28,14 +28,14 @@ module move_yield_copilot::vault_tests {
   /// -----------------------------
   /// Test: Deposit Mints Shares
   /// -----------------------------
-  #[test(admin = @0x1, user = @0x2)]
+  #[test(admin = @move_yield_copilot, user = @0x2)]
   public fun test_deposit(admin: &signer, user: &signer) {
     vault::init_vault<TestCoin>(admin, 100, 1000);
 
     vault::deposit<TestCoin>(user, 1_000);
 
     let (assets, shares, _) =
-        vault::get_vault_state<TestCoin>(signer::address_of(admin));
+        vault::get_vault_state<TestCoin>();
 
     assert!(assets == 1_000, 10);
     assert!(shares == 1_000, 11);
@@ -44,7 +44,7 @@ module move_yield_copilot::vault_tests {
   /// -----------------------------
   /// Test: Withdraw Burns Shares
   /// -----------------------------
-  #[test(admin = @0x1, user = @0x2)]
+  #[test(admin = @move_yield_copilot, user = @0x2)]
   public fun test_withdraw(admin: &signer, user: &signer) {
     vault::init_vault<TestCoin>(admin, 100, 1000);
 
@@ -52,7 +52,7 @@ module move_yield_copilot::vault_tests {
     vault::withdraw<TestCoin>(user, 500);
 
     let (assets, shares, _) =
-        vault::get_vault_state<TestCoin>(signer::address_of(admin));
+        vault::get_vault_state<TestCoin>();
 
     assert!(assets == 500, 20);
     assert!(shares == 500, 21);
@@ -61,7 +61,7 @@ module move_yield_copilot::vault_tests {
   /// -----------------------------
   /// Test: Harvest + Performance Fee
   /// -----------------------------
-  #[test(admin = @0x1, user = @0x2)]
+  #[test(admin = @move_yield_copilot, user = @0x2)]
   public fun test_harvest_and_fees(admin: &signer, user: &signer) {
     vault::init_vault<TestCoin>(admin, 0, 1000); // 10% perf fee
 
@@ -71,7 +71,7 @@ module move_yield_copilot::vault_tests {
     vault::collect_fees<TestCoin>(admin);
 
     let (assets, _, _) =
-        vault::get_vault_state<TestCoin>(signer::address_of(admin));
+        vault::get_vault_state<TestCoin>();
 
     assert!(assets == 1_900, 30);
   }
@@ -86,7 +86,7 @@ module move_yield_copilot::vault_tests {
     vault::switch_strategy<TestCoin>(admin, 1);
 
     let (_, _, strategy) =
-        vault::get_vault_state<TestCoin>(signer::address_of(admin));
+        vault::get_vault_state<TestCoin>();
 
     assert!(strategy == 1, 40);
   }

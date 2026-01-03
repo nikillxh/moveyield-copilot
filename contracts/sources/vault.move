@@ -5,7 +5,7 @@ module move_yield_copilot::vault {
   use std::vector;
   use std::option::{Self, Option};
   use aptos_framework::coin;
-  use aptos_framework::timestamp;
+  // use aptos_framework::timestamp;
 
   /// -----------------------------
   /// Errors
@@ -14,6 +14,7 @@ module move_yield_copilot::vault {
   const E_INVALID_AMOUNT: u64 = 2;
   const E_INSUFFICIENT_SHARES: u64 = 3;
   const E_STRATEGY_NOT_FOUND: u64 = 4;
+  const E_VAULT_NOT_FOUND: u64 = 99;
 
   /// -----------------------------
   /// Enums
@@ -24,6 +25,10 @@ module move_yield_copilot::vault {
 
   const STRATEGY_STABLE_SAFE: u8 = 0;
   const STRATEGY_MOVE_LONG: u8 = 1;
+
+  /// Vault lives at publisher address
+  const VAULT_ADMIN: address = @move_yield_copilot;
+
 
   /// -----------------------------
   /// Strategy Metadata
@@ -55,7 +60,7 @@ module move_yield_copilot::vault {
     perf_fee_bps: u64,
 
     /// last fee timestamp
-    last_fee_ts: u64,
+    // last_fee_ts: u64,
 
     /// strategy registry
     strategies: vector<StrategyMetadata>,
@@ -76,45 +81,51 @@ module move_yield_copilot::vault {
     mgmt_fee_bps: u64,
     perf_fee_bps: u64,
   ) {
-      let strategies = vector::empty<StrategyMetadata>();
+    // preventing vault reinitialization
+    assert!(
+      !exists<Vault<T>>(VAULT_ADMIN),
+      E_VAULT_NOT_FOUND
+    );
 
-      vector::push_back(
+    let strategies = vector::empty<StrategyMetadata>();
+
+    vector::push_back(
+      &mut strategies,
+      StrategyMetadata {
+        id: STRATEGY_STABLE_SAFE,
+        name: string::utf8(b"Stable Safe"),
+        risk_level: RISK_LOW,
+        description: string::utf8(b"Lend stablecoins with no leverage"),
+        management_fee_bps: mgmt_fee_bps,
+        performance_fee_bps: perf_fee_bps,
+      }
+    );
+
+    vector::push_back(
         &mut strategies,
         StrategyMetadata {
-          id: STRATEGY_STABLE_SAFE,
-          name: string::utf8(b"Stable Safe"),
-          risk_level: RISK_LOW,
-          description: string::utf8(b"Lend stablecoins with no leverage"),
-          management_fee_bps: mgmt_fee_bps,
-          performance_fee_bps: perf_fee_bps,
+            id: STRATEGY_MOVE_LONG,
+            name: string::utf8(b"MOVE Long"),
+            risk_level: RISK_MEDIUM,
+            description: string::utf8(b"Conservative MOVE long with lending loop"),
+            management_fee_bps: mgmt_fee_bps,
+            performance_fee_bps: perf_fee_bps,
         }
-      );
+    );
 
-      vector::push_back(
-          &mut strategies,
-          StrategyMetadata {
-              id: STRATEGY_MOVE_LONG,
-              name: string::utf8(b"MOVE Long"),
-              risk_level: RISK_MEDIUM,
-              description: string::utf8(b"Conservative MOVE long with lending loop"),
-              management_fee_bps: mgmt_fee_bps,
-              performance_fee_bps: perf_fee_bps,
-          }
-      );
-
-      move_to(
-          admin,
-          Vault<T> {
-              total_assets: 0,
-              total_shares: 0,
-              active_strategy: STRATEGY_STABLE_SAFE,
-              pending_profit: 0,
-              mgmt_fee_bps,
-              perf_fee_bps,
-              last_fee_ts: timestamp::now_seconds(),
-              strategies,
-          }
-      );
+    move_to(
+        admin,
+        Vault<T> {
+            total_assets: 0,
+            total_shares: 0,
+            active_strategy: STRATEGY_STABLE_SAFE,
+            pending_profit: 0,
+            mgmt_fee_bps,
+            perf_fee_bps,
+            // last_fee_ts: timestamp::now_seconds(),
+            strategies,
+        }
+    );
   }
 
   /// -----------------------------
@@ -126,7 +137,7 @@ module move_yield_copilot::vault {
   ) acquires Vault, Position {
       assert!(amount > 0, E_INVALID_AMOUNT);
 
-      let vault = borrow_global_mut<Vault<T>>(signer::address_of(user));
+      let vault = borrow_global_mut<Vault<T>>(VAULT_ADMIN);
 
       let shares = if (vault.total_shares == 0) {
           amount
@@ -155,7 +166,7 @@ module move_yield_copilot::vault {
       let pos = borrow_global_mut<Position>(signer::address_of(user));
       assert!(pos.shares >= share_amount, E_INSUFFICIENT_SHARES);
 
-      let vault = borrow_global_mut<Vault<T>>(signer::address_of(user));
+      let vault = borrow_global_mut<Vault<T>>(VAULT_ADMIN);
 
       let assets = share_amount * vault.total_assets / vault.total_shares;
 
@@ -170,17 +181,23 @@ module move_yield_copilot::vault {
   /// Switch Strategy
   /// -----------------------------
   public fun switch_strategy<T>(
-      admin: &signer,
-      strategy_id: u8,
+    admin: &signer,
+    strategy_id: u8,
   ) acquires Vault {
-      let vault = borrow_global_mut<Vault<T>>(signer::address_of(admin));
 
-      assert!(
-          strategy_id == STRATEGY_STABLE_SAFE || strategy_id == STRATEGY_MOVE_LONG,
-          E_STRATEGY_NOT_FOUND
-      );
+    assert!(
+      signer::address_of(admin) == VAULT_ADMIN,
+      E_NOT_AUTHORIZED
+    );
 
-      vault.active_strategy = strategy_id;
+    let vault = borrow_global_mut<Vault<T>>(signer::address_of(admin));
+
+    assert!(
+        strategy_id == STRATEGY_STABLE_SAFE || strategy_id == STRATEGY_MOVE_LONG,
+        E_STRATEGY_NOT_FOUND
+    );
+
+    vault.active_strategy = strategy_id;
   }
 
   /// -----------------------------
@@ -190,37 +207,47 @@ module move_yield_copilot::vault {
       admin: &signer,
       simulated_profit: u64,
   ) acquires Vault {
-      let vault = borrow_global_mut<Vault<T>>(signer::address_of(admin));
 
-      vault.pending_profit = vault.pending_profit + simulated_profit;
-      vault.total_assets = vault.total_assets + simulated_profit;
+    assert!(
+      signer::address_of(admin) == VAULT_ADMIN,
+      E_NOT_AUTHORIZED
+    );
+
+    let vault = borrow_global_mut<Vault<T>>(signer::address_of(admin));
+
+    vault.pending_profit = vault.pending_profit + simulated_profit;
+    vault.total_assets = vault.total_assets + simulated_profit;
   }
 
   /// -----------------------------
   /// Collect Fees
   /// -----------------------------
   public fun collect_fees<T>(
-      admin: &signer,
+    admin: &signer,
   ) acquires Vault {
-      let vault = borrow_global_mut<Vault<T>>(signer::address_of(admin));
 
-      let perf_fee =
-          vault.pending_profit * vault.perf_fee_bps / 10_000;
+    assert!(
+      signer::address_of(admin) == VAULT_ADMIN,
+      E_NOT_AUTHORIZED
+    );
 
-      vault.total_assets = vault.total_assets - perf_fee;
-      vault.pending_profit = 0;
-      vault.last_fee_ts = timestamp::now_seconds();
+    let vault = borrow_global_mut<Vault<T>>(signer::address_of(admin));
 
-      // fee transfer omitted (send to treasury in mainnet)
+    let perf_fee =
+        vault.pending_profit * vault.perf_fee_bps / 10_000;
+
+    vault.total_assets = vault.total_assets - perf_fee;
+    vault.pending_profit = 0;
+    // vault.last_fee_ts = timestamp::now_seconds();
+
+    // fee transfer omitted (send to treasury in mainnet)
   }
 
   /// -----------------------------
   /// View Helpers
   /// -----------------------------
-  public fun get_vault_state<T>(
-      owner: address
-  ): (u64, u64, u8) acquires Vault {
-      let vault = borrow_global<Vault<T>>(owner);
+  public fun get_vault_state<T>(): (u64, u64, u8) acquires Vault {
+      let vault = borrow_global<Vault<T>>(VAULT_ADMIN);
       (vault.total_assets, vault.total_shares, vault.active_strategy)
   }
 
