@@ -79,7 +79,7 @@ module move_yield_copilot::vault_tests {
   /// -----------------------------
   /// Test: Switch Strategy
   /// -----------------------------
-  #[test(admin = @0x1)]
+#[test(admin = @move_yield_copilot)]
   public fun test_switch_strategy(admin: &signer) {
     vault::init_vault<TestCoin>(admin, 100, 1000);
 
