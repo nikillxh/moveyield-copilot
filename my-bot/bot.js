@@ -11,7 +11,6 @@ dotenv.config({ path: join(__dirname, ".env") });
 const TOKEN = process.env.BOT_API;
 const VAULT_ADDRESS = process.env.VAULT_ADDRESS; // e.g. 0x....
 const RPC_URL = process.env.MOVEMENT_RPC_URL; // required: movement testnet RPC
-const WEBAPP_URL = process.env.WEBAPP_URL || 'http://localhost:3000'; // frontend URL
 
 if (!TOKEN) {
 	console.error("BOT_API not set in .env");
