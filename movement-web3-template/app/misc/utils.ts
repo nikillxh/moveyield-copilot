@@ -49,6 +49,13 @@ export const NETWORK_MAP: Record<string, INetwork> = {
     buttonName: "Move Mainnet",
     url: "https://mainnet.movementnetwork.xyz/v1",
   },
+  "127": {
+    uiQueue: 5,
+    chainId: 127,
+    name: Network.CUSTOM,
+    buttonName: "Move Testnet",
+    url: "https://testnet.movementnetwork.xyz/v1",
+  },
   "254": {
     uiQueue: 7,
     chainId: 254,

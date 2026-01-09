@@ -95,7 +95,8 @@ bot.onText(/\/start/, (msg) => {
 			inline_keyboard: [
 				[{ text: "📊 View strategies", callback_data: "strategies" }],
 				[{ text: "💰 Deposit", callback_data: "deposit" }],
-				[{ text: "📈 Check position", callback_data: "position" }],
+				[{ text: "� Withdraw", callback_data: "withdraw" }],
+				[{ text: "�📈 Check position", callback_data: "position" }],
 			],
 		},
 		parse_mode: 'Markdown',
@@ -111,6 +112,9 @@ bot.on('callback_query', async (query) => {
 	} else if (data === 'deposit') {
 		await bot.sendMessage(chatId, 'Enter amount of MOVE to deposit (integer, in smallest unit if applicable).');
 		setSession(chatId, { flow: 'deposit_step_amount' });
+	} else if (data === 'withdraw') {
+		await bot.sendMessage(chatId, 'Enter amount of shares to withdraw (integer).');
+		setSession(chatId, { flow: 'withdraw_step_amount' });
 	} else if (data === 'position') {
 		await bot.sendMessage(chatId, 'To show your position I need your wallet address. Please reply with your wallet address.');
 		setSession(chatId, { flow: 'position_wait_address' });
@@ -186,32 +190,91 @@ bot.on('message', async (msg) => {
 			const mgmtFeePercent = (parseInt(mgmtFeeBps, 10) / 100).toFixed(2);
 			const perfFeePercent = (parseInt(perfFeeBps, 10) / 100).toFixed(2);
 
-			const summary = `✅ *Deposit Summary*
+			// Transaction payload for the user
+			const txPayload = {
+				function: `${VAULT_ADDRESS}::vault::deposit`,
+				type_arguments: ["0x1::aptos_coin::AptosCoin"],
+				arguments: [amount],
+			};
+
+			const summary = `✅ *Deposit Ready*
 
 💰 *Amount:* ${amount} MOVE
 📊 *Strategy:* ${strategyName}
 💸 *Management Fee:* ${mgmtFeePercent}%
 💸 *Performance Fee:* ${perfFeePercent}%
 
-📋 *Transaction to sign:*`;
+📝 *Transaction Payload:*
+\`\`\`json
+${JSON.stringify(txPayload, null, 2)}
+\`\`\`
 
-			await bot.sendMessage(chatId, summary, { parse_mode: 'Markdown' });
+👉 *To complete:*
+1. Open Nightly wallet (browser extension or app)
+2. Go to Movement Testnet
+3. Use the payload above to call the deposit function
+
+Or use Movement Explorer to submit:`;
+
+			// Link to Movement explorer (they have a contract interaction UI)
+			const explorerUrl = `https://explorer.movementnetwork.xyz/account/${VAULT_ADDRESS}/modules/run/vault/deposit?network=testnet`;
+
+			await bot.sendMessage(chatId, summary, {
+				parse_mode: 'Markdown',
+				reply_markup: {
+					inline_keyboard: [
+						[{ text: '🔗 Open Movement Explorer', url: explorerUrl }],
+					],
+				},
+			});
 			
-			// Send the transaction command that can be copied
-			const txCommand = `Function: ${VAULT_ADDRESS}::vault::deposit
-Type Args: 0x1::aptos_coin::AptosCoin
-Args: ${amount}`;
+			clearSession(chatId);
+			return;
+		}
 
-			await bot.sendMessage(chatId, `\`\`\`\n${txCommand}\n\`\`\``, { parse_mode: 'Markdown' });
+		if (session.flow === 'withdraw_step_amount') {
+			const amount = text.trim();
 			
-			await bot.sendMessage(chatId, `🔗 *Sign in your wallet:*
+			// Validate amount is a positive integer
+			const amountNum = parseInt(amount, 10);
+			if (Number.isNaN(amountNum) || amountNum <= 0 || !(/^\d+$/.test(amount))) {
+				await bot.sendMessage(chatId, '❌ *Invalid amount*\n\nPlease enter a valid positive integer (e.g., 100, 1000).', { parse_mode: 'Markdown' });
+				return;
+			}
 
-1. Open [Movement Explorer](https://explorer.movementnetwork.xyz/account/${VAULT_ADDRESS}/modules/run/vault/deposit?network=testnet)
-2. Connect your wallet
-3. Enter amount: \`${amount}\`
-4. Click "Run"
+			// Transaction payload for the user
+			const txPayload = {
+				function: `${VAULT_ADDRESS}::vault::withdraw`,
+				type_arguments: ["0x1::aptos_coin::AptosCoin"],
+				arguments: [amount],
+			};
 
-_The bot never holds your keys._`, { parse_mode: 'Markdown' });
+			const summary = `💸 *Withdraw Ready*
+
+💰 *Shares to withdraw:* ${amount}
+
+📝 *Transaction Payload:*
+\`\`\`json
+${JSON.stringify(txPayload, null, 2)}
+\`\`\`
+
+👉 *To complete:*
+1. Open Nightly wallet (browser extension or app)
+2. Go to Movement Testnet
+3. Use the payload above to call the withdraw function
+
+Or use Movement Explorer to submit:`;
+
+			const explorerUrl = `https://explorer.movementnetwork.xyz/account/${VAULT_ADDRESS}/modules/run/vault/withdraw?network=testnet`;
+
+			await bot.sendMessage(chatId, summary, {
+				parse_mode: 'Markdown',
+				reply_markup: {
+					inline_keyboard: [
+						[{ text: '🔗 Open Movement Explorer', url: explorerUrl }],
+					],
+				},
+			});
 			
 			clearSession(chatId);
 			return;
