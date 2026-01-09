@@ -140,6 +140,16 @@ const StickyHeader: React.FC = () => {
             }}
             publicKey={userAccount?.address.toString()}
           />
+          <div className="mt-2">
+            <a
+              href={process.env.NEXT_PUBLIC_BOT_LINK || `https://t.me/${process.env.NEXT_PUBLIC_BOT_USERNAME || "your_bot_username"}`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-3 py-2 bg-white/10 rounded"
+            >
+              Open Telegram Bot
+            </a>
+          </div>
           {userAccount?.address && (
             <>
               <ActionStarryButton

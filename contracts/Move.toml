@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = []
 
 [addresses]
-move_yield_copilot = "0x123"
+move_yield_copilot = "0x5c1438090e291865f9f74c8d0f920e770ace8f65e2bf18b85a9905efdc4b31c2"
 
 [dev-addresses]
 

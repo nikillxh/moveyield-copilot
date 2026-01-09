@@ -86,7 +86,7 @@ module move_yield_copilot::vault {
   /// -----------------------------
   /// Initialize Vault
   /// -----------------------------
-  public fun init_vault<T>(
+  public entry fun init_vault<T>(
     admin: &signer,
     mgmt_fee_bps: u64,
     perf_fee_bps: u64,
@@ -142,7 +142,7 @@ module move_yield_copilot::vault {
   /// -----------------------------
   /// Deposit
   /// -----------------------------
-  public fun deposit<T>(
+  public entry fun deposit<T>(
     user: &signer,
     amount: u64,
   ) acquires Vault, Position {
@@ -170,7 +170,7 @@ module move_yield_copilot::vault {
   /// -----------------------------
   /// Withdraw
   /// -----------------------------
-  public fun withdraw<T>(
+  public entry fun withdraw<T>(
     user: &signer,
     share_amount: u64,
   ) acquires Vault, Position {
@@ -245,11 +245,13 @@ module move_yield_copilot::vault {
   /// -----------------------------
   /// View Helpers
   /// -----------------------------
+  #[view]
   public fun get_vault_state<T>(): (u64, u64, u8) acquires Vault {
     let vault = borrow_global<Vault<T>>(VAULT_ADMIN);
     (vault.total_assets, vault.total_shares, vault.active_strategy)
   }
 
+  #[view]
   public fun get_strategies<T>(
     owner: address
   ): vector<StrategyMetadata> acquires Vault {
