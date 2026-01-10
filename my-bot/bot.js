@@ -11,6 +11,7 @@ dotenv.config({ path: join(__dirname, ".env") });
 const TOKEN = process.env.BOT_API;
 const VAULT_ADDRESS = process.env.VAULT_ADDRESS; // e.g. 0x....
 const RPC_URL = process.env.MOVEMENT_RPC_URL; // required: movement testnet RPC
+const WEBAPP_URL = process.env.WEBAPP_URL; // deployed webapp URL
 
 if (!TOKEN) {
 	console.error("BOT_API not set in .env");
@@ -189,13 +190,6 @@ bot.on('message', async (msg) => {
 			const mgmtFeePercent = (parseInt(mgmtFeeBps, 10) / 100).toFixed(2);
 			const perfFeePercent = (parseInt(perfFeeBps, 10) / 100).toFixed(2);
 
-			// Transaction payload for the user
-			const txPayload = {
-				function: `${VAULT_ADDRESS}::vault::deposit`,
-				type_arguments: ["0x1::aptos_coin::AptosCoin"],
-				arguments: [amount],
-			};
-
 			const summary = `✅ *Deposit Ready*
 
 💰 *Amount:* ${amount} MOVE
@@ -203,26 +197,16 @@ bot.on('message', async (msg) => {
 💸 *Management Fee:* ${mgmtFeePercent}%
 💸 *Performance Fee:* ${perfFeePercent}%
 
-📝 *Transaction Payload:*
-\`\`\`json
-${JSON.stringify(txPayload, null, 2)}
-\`\`\`
+Click below to connect wallet and sign:`;
 
-👉 *To complete:*
-1. Open Nightly wallet (browser extension or app)
-2. Go to Movement Testnet
-3. Use the payload above to call the deposit function
-
-Or use Movement Explorer to submit:`;
-
-			// Link to Movement explorer (they have a contract interaction UI)
-			const explorerUrl = `https://explorer.movementnetwork.xyz/account/${VAULT_ADDRESS}/modules/run/vault/deposit?network=testnet`;
+			// Build webapp URL with transaction params
+			const webAppUrl = `${WEBAPP_URL}/sign?action=deposit&amount=${amount}&vault=${VAULT_ADDRESS}`;
 
 			await bot.sendMessage(chatId, summary, {
 				parse_mode: 'Markdown',
 				reply_markup: {
 					inline_keyboard: [
-						[{ text: '🔗 Open Movement Explorer', url: explorerUrl }],
+						[{ text: '🔗 Connect Wallet & Deposit', web_app: { url: webAppUrl } }],
 					],
 				},
 			});
@@ -241,36 +225,20 @@ Or use Movement Explorer to submit:`;
 				return;
 			}
 
-			// Transaction payload for the user
-			const txPayload = {
-				function: `${VAULT_ADDRESS}::vault::withdraw`,
-				type_arguments: ["0x1::aptos_coin::AptosCoin"],
-				arguments: [amount],
-			};
-
 			const summary = `💸 *Withdraw Ready*
 
 💰 *Shares to withdraw:* ${amount}
 
-📝 *Transaction Payload:*
-\`\`\`json
-${JSON.stringify(txPayload, null, 2)}
-\`\`\`
+Click below to connect wallet and sign:`;
 
-👉 *To complete:*
-1. Open Nightly wallet (browser extension or app)
-2. Go to Movement Testnet
-3. Use the payload above to call the withdraw function
-
-Or use Movement Explorer to submit:`;
-
-			const explorerUrl = `https://explorer.movementnetwork.xyz/account/${VAULT_ADDRESS}/modules/run/vault/withdraw?network=testnet`;
+			// Build webapp URL with transaction params
+			const webAppUrl = `${WEBAPP_URL}/sign?action=withdraw&amount=${amount}&vault=${VAULT_ADDRESS}`;
 
 			await bot.sendMessage(chatId, summary, {
 				parse_mode: 'Markdown',
 				reply_markup: {
 					inline_keyboard: [
-						[{ text: '🔗 Open Movement Explorer', url: explorerUrl }],
+						[{ text: '🔗 Connect Wallet & Withdraw', web_app: { url: webAppUrl } }],
 					],
 				},
 			});

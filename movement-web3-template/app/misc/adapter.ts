@@ -1,27 +1,22 @@
-import { NightlyConnectAptosAdapter } from "@nightlylabs/wallet-selector-aptos";
-import { MOVEMENT_NETWORK } from "./utils";
+// Simple Nightly wallet adapter using window.nightly
+export interface NightlyWallet {
+  connect: () => Promise<{ address: string; publicKey: string }>;
+  disconnect: () => Promise<void>;
+  isConnected: () => Promise<boolean>;
+  account: () => Promise<{ address: string; publicKey: string } | null>;
+  network: () => Promise<{ name: string; chainId: number }>;
+  signAndSubmitTransaction: (payload: any) => Promise<{ hash: string }>;
+  signTransaction: (payload: any) => Promise<any>;
+  signMessage: (message: any) => Promise<any>;
+  on: (event: string, callback: (data: any) => void) => void;
+  off: (event: string, callback: (data: any) => void) => void;
+}
 
-let _adapter: NightlyConnectAptosAdapter | undefined;
-export const getAdapter = async (persisted = true) => {
-  if (_adapter) return _adapter;
-  _adapter = await NightlyConnectAptosAdapter.build(
-    {
-      appMetadata: {
-        name: "Movement Template",
-        description: "Movement Template",
-        icon: "https://docs.nightly.app/img/logo.png",
-      },
-      // specify different network than Aptos for deeplink support
-      network: MOVEMENT_NETWORK,
-    },
-    {},
-    undefined,
-    {
-      networkDataOverride: {
-        name: "Movement",
-        icon: "https://registry.nightly.app/networks/movement.svg",
-      },
-    }
-  );
-  return _adapter;
+export const getNightlyWallet = (): NightlyWallet | null => {
+  if (typeof window === "undefined") return null;
+  return (window as any).nightly?.aptos || null;
+};
+
+export const isNightlyInstalled = (): boolean => {
+  return getNightlyWallet() !== null;
 };
