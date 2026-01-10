@@ -197,7 +197,8 @@ bot.on('message', async (msg) => {
 💸 *Management Fee:* ${mgmtFeePercent}%
 💸 *Performance Fee:* ${perfFeePercent}%
 
-Click below to connect wallet and sign:`;
+Click below to connect wallet and sign:
+_(If on desktop app, use "Open in Browser" link)_`;
 
 			// Build webapp URL with transaction params
 			const webAppUrl = `${WEBAPP_URL}/sign?action=deposit&amount=${amount}&vault=${VAULT_ADDRESS}`;
@@ -207,6 +208,7 @@ Click below to connect wallet and sign:`;
 				reply_markup: {
 					inline_keyboard: [
 						[{ text: '🔗 Connect Wallet & Deposit', web_app: { url: webAppUrl } }],
+						[{ text: '🌐 Open in Browser (Desktop)', url: webAppUrl }],
 					],
 				},
 			});
@@ -229,7 +231,8 @@ Click below to connect wallet and sign:`;
 
 💰 *Shares to withdraw:* ${amount}
 
-Click below to connect wallet and sign:`;
+Click below to connect wallet and sign:
+_(If on desktop app, use "Open in Browser" link)_`;
 
 			// Build webapp URL with transaction params
 			const webAppUrl = `${WEBAPP_URL}/sign?action=withdraw&amount=${amount}&vault=${VAULT_ADDRESS}`;
@@ -239,6 +242,7 @@ Click below to connect wallet and sign:`;
 				reply_markup: {
 					inline_keyboard: [
 						[{ text: '🔗 Connect Wallet & Withdraw', web_app: { url: webAppUrl } }],
+						[{ text: '🌐 Open in Browser (Desktop)', url: webAppUrl }],
 					],
 				},
 			});
